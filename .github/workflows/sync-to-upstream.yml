@@ -82,6 +82,26 @@ jobs:
         run: |
           git rebase upstream/develop
       
+      # Step 5.5: Remove B-repo specific files
+      - name: Remove fork-specific workflow files
+        run: |
+          # Remove sync workflow files that are specific to B-repo
+          # These should not be synced to Apache upstream
+          git rm -f .github/workflows/sync-to-upstream.yml || true
+          git rm -f .github/workflows/SYNC_WORKFLOW_GUIDE.md || true
+          
+          # Commit the removal if there are changes
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: remove fork-specific workflow files
+            
+            These files are specific to dubbo-go-pixiu/dubbo-go-pixiu organization fork
+            and are not needed in the upstream Apache repository.
+            
+            Files removed:
+            - .github/workflows/sync-to-upstream.yml
+            - .github/workflows/SYNC_WORKFLOW_GUIDE.md"
+          fi
+      
       # Step 6: Push sync branch to origin
       - name: Push sync branch
         run: |
