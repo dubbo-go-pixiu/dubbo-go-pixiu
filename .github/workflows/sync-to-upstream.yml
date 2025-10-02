@@ -153,12 +153,13 @@ jobs:
         id: create_pr
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_GITHUB_TOKEN }}
+          SYNC_PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           PR_URL=$(gh pr create \
             --repo apache/dubbo-go-pixiu \
             --base develop \
             --head dubbo-go-pixiu:${SYNC_BRANCH} \
-            --title "${{ github.event.pull_request.title }}" \
+            --title "$SYNC_PR_TITLE" \
             --body-file pr_body.md)
           
           echo "pr_url=${PR_URL}" >> $GITHUB_OUTPUT
@@ -169,30 +170,38 @@ jobs:
         if: success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          UPSTREAM_PR_URL: ${{ steps.create_pr.outputs.pr_url }}
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body \
-            "🤖 **Automated Upstream Sync**
-            
-            Your PR has been automatically synced to Apache upstream:
-            ${{ steps.create_pr.outputs.pr_url }}
-            
-            Thank you for your contribution! 🎉"
+          # Generate comment body and post to original PR
+          {
+            echo "🤖 **Automated Upstream Sync**"
+            echo ""
+            echo "Your PR has been automatically synced to Apache upstream:"
+            echo "$UPSTREAM_PR_URL"
+            echo ""
+            echo "Thank you for your contribution! 🎉"
+          } > comment_body.md
+          
+          gh pr comment "$PR_NUMBER" --body-file comment_body.md
       
       # Step 10-11: Error handling for rebase conflicts
       - name: Handle rebase failure
         if: failure() && steps.rebase.outcome == 'failure'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           git rebase --abort || true
           
           gh issue create \
             --repo dubbo-go-pixiu/dubbo-go-pixiu \
-            --title "⚠️ Failed to auto-sync PR #${{ github.event.pull_request.number }} to upstream" \
+            --title "⚠️ Failed to auto-sync PR #${PR_NUMBER} to upstream" \
             --body "## Sync Failure Report
             
-            **Original PR**: #${{ github.event.pull_request.number }}
-            **Author**: @${{ github.event.pull_request.user.login }}
+            **Original PR**: #${PR_NUMBER}
+            **Author**: @${PR_AUTHOR}
             **Error**: Rebase conflicts detected when syncing to apache/dubbo-go-pixiu
             
             ### Action Required
@@ -202,14 +211,14 @@ jobs:
             ### Steps to resolve:
             
             1. Checkout the develop branch
-            2. Create a new branch: \`git checkout -b manual-sync-${{ github.event.pull_request.number }}\`
+            2. Create a new branch: \`git checkout -b manual-sync-${PR_NUMBER}\`
             3. Add upstream: \`git remote add upstream https://github.com/apache/dubbo-go-pixiu.git\`
             4. Fetch upstream: \`git fetch upstream develop\`
             5. Rebase: \`git rebase upstream/develop\`
             6. Resolve conflicts manually
             7. Push and create PR to apache/dubbo-go-pixiu
             
-            cc @${{ github.event.pull_request.user.login }}" \
+            cc @${PR_AUTHOR}" \
             --label "sync-failure,needs-attention"
           
           echo "❌ Rebase failed. Issue created for manual resolution."
