@@ -59,8 +59,7 @@ env:
 on:
   pull_request_target:
     types: [closed]
-    branches:
-      - develop  # Note: This must match BASE_BRANCH above
+    # No branches filter here - we check the branch in the job condition below
 
 # Explicit permissions required for gh pr comment and gh issue create
 permissions:
@@ -74,12 +73,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  sync-to-apache:
-    name: Sync to Apache Repository
+  sync-to-upstream:
+    name: Sync to Upstream Repository
     runs-on: ubuntu-latest
     
-    # Only run when PR is actually merged (not just closed)
-    if: github.event.pull_request.merged == true
+    # Only run when:
+    # 1. PR is actually merged (not just closed)
+    # 2. PR targets the base branch configured in env.BASE_BRANCH
+    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == env.BASE_BRANCH
     
     steps:
       # Step 1: Checkout code with full history
@@ -121,9 +122,7 @@ jobs:
       - name: Remove fork-specific workflow files
         run: |
           # Remove files that are specific to the fork and should not be synced to upstream
-          echo "${{ env.EXCLUDE_FILES }}" | while IFS= read -r file; do
-            [ -n "$file" ] && git rm -f "$file" || true
-          done
+          echo "${{ env.EXCLUDE_FILES }}" | xargs git rm -f --ignore-unmatch
           
           # Commit the removal if there are changes
           if ! git diff --cached --quiet; then
