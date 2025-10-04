@@ -77,14 +77,27 @@ jobs:
     name: Sync to Upstream Repository
     runs-on: ubuntu-latest
     
-    # Only run when:
-    # 1. PR is actually merged (not just closed)
-    # 2. PR targets the base branch configured in env.BASE_BRANCH
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == env.BASE_BRANCH
+    # Only run when PR is actually merged (not just closed)
+    # Branch check is done at step level where env is available
+    if: github.event.pull_request.merged == true
     
     steps:
+      # Step 0: Check if PR targets the correct base branch
+      - name: Check target branch
+        id: check_branch
+        run: |
+          if [ "${{ github.event.pull_request.base.ref }}" != "${{ env.BASE_BRANCH }}" ]; then
+            echo "⚠️  PR targets branch '${{ github.event.pull_request.base.ref }}', but BASE_BRANCH is configured as '${{ env.BASE_BRANCH }}'"
+            echo "Skipping sync as this PR does not target the configured base branch."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ PR targets the correct base branch: ${{ env.BASE_BRANCH }}"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+      
       # Step 1: Checkout code with full history
       - name: Checkout repository
+        if: steps.check_branch.outputs.skip != 'true'
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -93,18 +106,21 @@ jobs:
       
       # Step 2: Configure Git user
       - name: Configure Git user
+        if: steps.check_branch.outputs.skip != 'true'
         run: |
           git config user.name "${{ env.BOT_NAME }}"
           git config user.email "${{ env.BOT_EMAIL }}"
       
       # Step 3: Add upstream remote and fetch
       - name: Add upstream remote
+        if: steps.check_branch.outputs.skip != 'true'
         run: |
           git remote add upstream https://github.com/${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}.git
           git fetch upstream ${{ env.BASE_BRANCH }}
       
       # Step 4: Create sync branch with timestamp
       - name: Create sync branch
+        if: steps.check_branch.outputs.skip != 'true'
         id: create_branch
         run: |
           SYNC_BRANCH="auto-sync-$(date +%Y%m%d-%H%M%S)"
@@ -114,12 +130,14 @@ jobs:
       
       # Step 5: Rebase onto upstream base branch
       - name: Rebase onto upstream
+        if: steps.check_branch.outputs.skip != 'true'
         id: rebase
         run: |
           git rebase upstream/${{ env.BASE_BRANCH }}
       
       # Step 5.5: Remove fork-specific files
       - name: Remove fork-specific workflow files
+        if: steps.check_branch.outputs.skip != 'true'
         run: |
           # Remove files that are specific to the fork and should not be synced to upstream
           echo "${{ env.EXCLUDE_FILES }}" | xargs git rm -f --ignore-unmatch
@@ -137,11 +155,13 @@ jobs:
       
       # Step 6: Push sync branch to origin
       - name: Push sync branch
+        if: steps.check_branch.outputs.skip != 'true'
         run: |
           git push origin ${SYNC_BRANCH} --force-with-lease
       
       # Step 7: Generate PR body with attribution
       - name: Generate PR description
+        if: steps.check_branch.outputs.skip != 'true'
         id: pr_body
         env:
           ORIGINAL_BODY: ${{ github.event.pull_request.body }}
@@ -183,6 +203,7 @@ jobs:
       
       # Step 8: Create PR to upstream repository
       - name: Create PR to ${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}
+        if: steps.check_branch.outputs.skip != 'true'
         id: create_pr
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_GITHUB_TOKEN }}
@@ -200,7 +221,7 @@ jobs:
       
       # Step 9: Comment on original PR with upstream PR link
       - name: Notify original PR
-        if: success()
+        if: success() && steps.check_branch.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
