@@ -141,7 +141,8 @@ jobs:
         if: steps.check_branch.outputs.skip != 'true'
         run: |
           # Remove files that are specific to the fork and should not be synced to upstream
-          echo "${{ env.EXCLUDE_FILES }}" | xargs git rm -f --ignore-unmatch
+          # Filter out empty lines to prevent xargs errors
+          echo "${{ env.EXCLUDE_FILES }}" | grep -v '^\s*$' | xargs git rm -f --ignore-unmatch
           
           # Commit the removal if there are changes
           if ! git diff --cached --quiet; then
