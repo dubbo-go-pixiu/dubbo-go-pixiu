@@ -1,0 +1,14 @@
+version: "1"
+rules:
+  - base: develop
+    upstream: apache:develop
+    mergeMethod: rebase
+    mergeUnstable: false
+    assignees:
+      - AlexStocks
+    conflictReviewers:
+      - AlexStocks
+
+label: "upstream-sync"
+conflictLabel: "sync-conflict"
+

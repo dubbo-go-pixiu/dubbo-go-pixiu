@@ -53,6 +53,7 @@ env:
   # Add any fork-specific files that should not be synced
   EXCLUDE_FILES: |
     .github/workflows/sync-to-upstream.yml
+    .github/pull.yml
 
 # ============================================================================
 
