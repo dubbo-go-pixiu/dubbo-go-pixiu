@@ -67,22 +67,31 @@ jobs:
     name: Sync to Upstream Repository
     runs-on: ubuntu-latest
     
-    # Only run when PR is merged and running in fork repository
-    if: |
-      github.event.pull_request.merged == true &&
-      github.repository == format('{0}/{1}', env.FORK_ORG, env.FORK_REPO)
+    # Only run when PR is merged; repository check happens inside steps where env is available
+    if: github.event.pull_request.merged == true
     
     steps:
-      - name: Check target branch
+      - name: Check repository and target branch
         id: check_branch
         run: |
-          if [ "${{ github.event.pull_request.base.ref }}" != "${{ env.BASE_BRANCH }}" ]; then
-            echo "⚠️  PR targets '${{ github.event.pull_request.base.ref }}', expected '${{ env.BASE_BRANCH }}'. Skipping."
+          EXPECTED_REPO="${{ env.FORK_ORG }}/${{ env.FORK_REPO }}"
+          CURRENT_REPO="${GITHUB_REPOSITORY}"
+
+          if [ "${CURRENT_REPO}" != "${EXPECTED_REPO}" ]; then
+            echo "ℹ️ Running in '${CURRENT_REPO}', expected '${EXPECTED_REPO}'. Skipping."
             echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "✅ PR targets correct branch: ${{ env.BASE_BRANCH }}"
-            echo "skip=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
+
+          TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+          if [ "${TARGET_BRANCH}" != "${{ env.BASE_BRANCH }}" ]; then
+            echo "⚠️ PR targets '${TARGET_BRANCH}', expected '${{ env.BASE_BRANCH }}'. Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "✅ Repo and base branch verified: ${EXPECTED_REPO}@${{ env.BASE_BRANCH }}"
+          echo "skip=false" >> $GITHUB_OUTPUT
 
       # Step 1: Checkout code with full history
       - name: Checkout repository
