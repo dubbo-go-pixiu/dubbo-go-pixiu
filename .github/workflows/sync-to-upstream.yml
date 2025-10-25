@@ -94,12 +94,13 @@ jobs:
           echo "skip=false" >> $GITHUB_OUTPUT
 
       # Step 1: Checkout code with full history
+      # SECURITY: Safe for pull_request_target - explicitly checks out BASE_BRANCH, not PR head
       - name: Checkout repository
         if: steps.check_branch.outputs.skip != 'true'
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          ref: ${{ env.BASE_BRANCH }}
+          ref: ${{ env.BASE_BRANCH }}  //NOSONAR
           token: ${{ secrets.UPSTREAM_GITHUB_TOKEN }}
       
       # Step 2: Configure Git user
@@ -228,25 +229,25 @@ jobs:
             --repo ${{ env.FORK_ORG }}/${{ env.FORK_REPO }} \
             --title "⚠️ Failed to auto-sync PR #${PR_NUMBER} to upstream" \
             --body "## Sync Failure Report
-            
-            **Original PR**: #${PR_NUMBER}
-            **Author**: @${PR_AUTHOR}
-            **Error**: Rebase conflicts detected
-            
-            ### Manual Resolution Required
-            
-            \`\`\`bash
-            git checkout ${{ env.BASE_BRANCH }}
-            git checkout -b manual-sync-${PR_NUMBER}
-            git remote add upstream https://github.com/${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}.git
-            git fetch upstream ${{ env.BASE_BRANCH }}
-            git rebase upstream/${{ env.BASE_BRANCH }}
-            # Resolve conflicts
-            git push origin manual-sync-${PR_NUMBER}
-            # Create PR to ${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}
-            \`\`\`
-            
-            cc @${PR_AUTHOR}" \
+
+**Original PR**: #${PR_NUMBER}
+**Author**: @${PR_AUTHOR}
+**Error**: Rebase conflicts detected
+
+### Manual Resolution Required
+
+\\\`\\\`\\\`bash
+git checkout ${{ env.BASE_BRANCH }}
+git checkout -b manual-sync-${PR_NUMBER}
+git remote add upstream https://github.com/${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}.git
+git fetch upstream ${{ env.BASE_BRANCH }}
+git rebase upstream/${{ env.BASE_BRANCH }}
+# Resolve conflicts
+git push origin manual-sync-${PR_NUMBER}
+# Create PR to ${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}
+\\\`\\\`\\\`
+
+cc @${PR_AUTHOR}" \
             --label "sync-failure,needs-attention"
           
           echo "❌ Rebase failed. Issue created for manual resolution."
