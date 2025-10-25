@@ -225,30 +225,37 @@ jobs:
         run: |
           git rebase --abort || true
           
-          gh issue create \
+          {
+            echo "## Sync Failure Report"
+            echo ""
+            echo "**Original PR**: #${PR_NUMBER}"
+            echo "**Author**: @${PR_AUTHOR}"
+            echo "**Error**: Rebase conflicts detected"
+            echo ""
+            echo "### Manual Resolution Required"
+            echo ""
+            echo '```bash'
+            echo "git checkout ${{ env.BASE_BRANCH }}"
+            echo "git checkout -b manual-sync-${PR_NUMBER}"
+            echo "git remote add upstream https://github.com/${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}.git"
+            echo "git fetch upstream ${{ env.BASE_BRANCH }}"
+            echo "git rebase upstream/${{ env.BASE_BRANCH }}"
+            echo "# Resolve conflicts"
+            echo "git push origin manual-sync-${PR_NUMBER}"
+            echo "# Create PR to ${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}"
+            echo '```'
+            echo ""
+            echo "cc @${PR_AUTHOR}"
+          } > issue_body.md
+          
+          if gh issue create \
             --repo ${{ env.FORK_ORG }}/${{ env.FORK_REPO }} \
             --title "⚠️ Failed to auto-sync PR #${PR_NUMBER} to upstream" \
-            --body "## Sync Failure Report
-
-**Original PR**: #${PR_NUMBER}
-**Author**: @${PR_AUTHOR}
-**Error**: Rebase conflicts detected
-
-### Manual Resolution Required
-
-\\\`\\\`\\\`bash
-git checkout ${{ env.BASE_BRANCH }}
-git checkout -b manual-sync-${PR_NUMBER}
-git remote add upstream https://github.com/${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}.git
-git fetch upstream ${{ env.BASE_BRANCH }}
-git rebase upstream/${{ env.BASE_BRANCH }}
-# Resolve conflicts
-git push origin manual-sync-${PR_NUMBER}
-# Create PR to ${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}
-\\\`\\\`\\\`
-
-cc @${PR_AUTHOR}" \
-            --label "sync-failure,needs-attention"
-          
-          echo "❌ Rebase failed. Issue created for manual resolution."
-
+            --body-file issue_body.md \
+            --label sync-failure \
+            --label needs-attention; then
+            echo "❌ Rebase failed. Issue created for manual resolution."
+          else
+            echo "❌ Rebase failed. Failed to create issue - please check manually!"
+            exit 1
+          fi
