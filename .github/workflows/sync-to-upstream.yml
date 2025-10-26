@@ -202,14 +202,14 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           UPSTREAM_PR_URL: ${{ steps.create_pr.outputs.pr_url }}
         run: |
-          {
-            echo "🤖 **Automated Upstream Sync**"
-            echo ""
-            echo "Your PR has been synced to upstream:"
-            echo "$UPSTREAM_PR_URL"
-            echo ""
-            echo "Thank you for your contribution! 🎉"
-          } > comment_body.md
+          cat > comment_body.md <<EOF
+          🤖 **Automated Upstream Sync**
+          
+          Your PR has been synced to upstream:
+          $UPSTREAM_PR_URL
+          
+          Thank you for your contribution! 🎉
+          EOF
           
           gh pr comment "$PR_NUMBER" --repo ${{ env.FORK_ORG }}/${{ env.FORK_REPO }} --body-file comment_body.md || {
             echo "⚠️  Comment failed but sync succeeded: $UPSTREAM_PR_URL"
