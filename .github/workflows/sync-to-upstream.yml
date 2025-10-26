@@ -152,31 +152,31 @@ jobs:
           ORIGINAL_URL="${{ github.event.pull_request.html_url }}"
           MERGED_AT="$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
           
-          {
-            echo "## 🔄 Upstream Sync from Community Fork"
-            echo ""
-            echo "This PR automatically syncs changes from the community fork to the upstream repository."
-            echo ""
-            echo "### Original Contribution"
-            echo ""
-            echo "- **Author**: @${ORIGINAL_AUTHOR}"
-            echo "- **Original PR**: ${ORIGINAL_URL}"
-            echo "- **Merged at**: ${MERGED_AT}"
-            echo ""
-            echo "### Original PR Description"
-            echo ""
-            echo "---"
-            echo ""
-            echo "${ORIGINAL_BODY}"
-            echo ""
-            echo "---"
-            echo ""
-            echo "All commits preserve original authorship."
-            echo ""
-            echo "**Note**: Auto-created when PR #${ORIGINAL_PR} was merged into \`${{ env.FORK_ORG }}/${{ env.FORK_REPO }}:${{ env.BASE_BRANCH }}\`."
-            echo ""
-            echo "cc @${ORIGINAL_AUTHOR}"
-          } > pr_body.md
+          cat > pr_body.md <<EOF
+          ## 🔄 Upstream Sync from Community Fork
+          
+          This PR automatically syncs changes from the community fork to the upstream repository.
+          
+          ### Original Contribution
+          
+          - **Author**: @${ORIGINAL_AUTHOR}
+          - **Original PR**: ${ORIGINAL_URL}
+          - **Merged at**: ${MERGED_AT}
+          
+          ### Original PR Description
+          
+          ---
+          
+          ${ORIGINAL_BODY}
+          
+          ---
+          
+          All commits preserve original authorship.
+          
+          **Note**: Auto-created when PR #${ORIGINAL_PR} was merged into \`${{ env.FORK_ORG }}/${{ env.FORK_REPO }}:${{ env.BASE_BRANCH }}\`.
+          
+          cc @${ORIGINAL_AUTHOR}
+          EOF
       
       - name: Create PR to ${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}
         if: steps.check_branch.outputs.skip != 'true'
@@ -225,28 +225,28 @@ jobs:
         run: |
           git rebase --abort || true
           
-          {
-            echo "## Sync Failure Report"
-            echo ""
-            echo "**Original PR**: #${PR_NUMBER}"
-            echo "**Author**: @${PR_AUTHOR}"
-            echo "**Error**: Rebase conflicts detected"
-            echo ""
-            echo "### Manual Resolution Required"
-            echo ""
-            echo '```bash'
-            echo "git checkout ${{ env.BASE_BRANCH }}"
-            echo "git checkout -b manual-sync-${PR_NUMBER}"
-            echo "git remote add upstream https://github.com/${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}.git"
-            echo "git fetch upstream ${{ env.BASE_BRANCH }}"
-            echo "git rebase upstream/${{ env.BASE_BRANCH }}"
-            echo "# Resolve conflicts"
-            echo "git push origin manual-sync-${PR_NUMBER}"
-            echo "# Create PR to ${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}"
-            echo '```'
-            echo ""
-            echo "cc @${PR_AUTHOR}"
-          } > issue_body.md
+          cat > issue_body.md <<EOF
+          ## Sync Failure Report
+          
+          **Original PR**: #${PR_NUMBER}
+          **Author**: @${PR_AUTHOR}
+          **Error**: Rebase conflicts detected
+          
+          ### Manual Resolution Required
+          
+          \`\`\`bash
+          git checkout ${{ env.BASE_BRANCH }}
+          git checkout -b manual-sync-${PR_NUMBER}
+          git remote add upstream https://github.com/${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}.git
+          git fetch upstream ${{ env.BASE_BRANCH }}
+          git rebase upstream/${{ env.BASE_BRANCH }}
+          # Resolve conflicts
+          git push origin manual-sync-${PR_NUMBER}
+          # Create PR to ${{ env.UPSTREAM_ORG }}/${{ env.UPSTREAM_REPO }}
+          \`\`\`
+          
+          cc @${PR_AUTHOR}
+          EOF
           
           if gh issue create \
             --repo ${{ env.FORK_ORG }}/${{ env.FORK_REPO }} \
