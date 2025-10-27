@@ -74,6 +74,15 @@ jobs:
       - name: Check repository and target branch
         id: check_branch
         run: |
+          # Check if PR is created by Pull bot to avoid circular sync
+          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+          
+          if [ "${PR_AUTHOR}" = "pull" ]; then
+            echo "🤖 Detected Pull bot sync PR from user '${PR_AUTHOR}'. Skipping upstream sync to avoid circular updates."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
           EXPECTED_REPO="${{ env.FORK_ORG }}/${{ env.FORK_REPO }}"
           CURRENT_REPO="${GITHUB_REPOSITORY}"
 
