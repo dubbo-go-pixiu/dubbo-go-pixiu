@@ -67,7 +67,7 @@ type OTelInstruments struct {
 func (c *Config) Validate() error {
 	// Apply default mode if not specified
 	if c.Mode == "" {
-		c.Mode = constant.DefaultMetricMode
+		c.Mode = constant.DefaultMode
 	}
 
 	// Validate mode
@@ -88,19 +88,19 @@ func (c *Config) Validate() error {
 func (c *PushConfig) Validate() error {
 	// Apply defaults for empty fields
 	if c.GatewayURL == "" {
-		c.GatewayURL = constant.DefaultMetricPushGatewayURL
+		c.GatewayURL = constant.DefaultPushGatewayURL
 	}
 
 	if c.JobName == "" {
-		c.JobName = constant.DefaultMetricPushJobName
+		c.JobName = constant.DefaultPushJobName
 	}
 
 	if c.PushInterval <= 0 {
-		c.PushInterval = constant.DefaultMetricPushInterval
+		c.PushInterval = constant.DefaultPushInterval
 	}
 
 	if c.MetricPath == "" {
-		c.MetricPath = constant.DefaultMetricPushPath
+		c.MetricPath = constant.DefaultPushMetricPath
 	}
 
 	// All fields now have values (either user-provided or defaults)
