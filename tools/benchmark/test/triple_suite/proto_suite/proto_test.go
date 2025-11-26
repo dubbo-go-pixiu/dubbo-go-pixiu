@@ -28,8 +28,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	tripleConstant "github.com/dubbogo/triple/pkg/common/constant"
 )
 
 import (
@@ -39,6 +37,8 @@ import (
 
 	"dubbo.apache.org/dubbo-go/v3/config"
 	_ "dubbo.apache.org/dubbo-go/v3/imports"
+
+	tripleConstant "github.com/dubbogo/triple/pkg/common/constant"
 
 	. "github.com/onsi/ginkgo/v2"
 
