@@ -101,6 +101,7 @@ var _ = Describe("test", Ordered, func() {
 
 				resp, err := http.Post(url, "application/json", strings.NewReader(data))
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				defer resp.Body.Close()
 				gomega.Expect(resp.Status).To(gomega.Equal("200 OK"))
 				_, err = io.ReadAll(resp.Body)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -118,6 +119,7 @@ var _ = Describe("test", Ordered, func() {
 `
 				resp, err := http.Post(url, "application/json", strings.NewReader(data))
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				defer resp.Body.Close()
 				gomega.Expect(resp.Status).To(gomega.Equal("200 OK"))
 
 				_, err = io.ReadAll(resp.Body)
@@ -139,6 +141,7 @@ var _ = Describe("test", Ordered, func() {
 `
 				resp, err := http.Post(url, "application/json", strings.NewReader(data))
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				defer resp.Body.Close()
 				gomega.Expect(resp.Status).To(gomega.Equal("200 OK"))
 
 				_, err = io.ReadAll(resp.Body)
@@ -163,6 +166,7 @@ var _ = Describe("test", Ordered, func() {
 
 				resp, err := http.Post(url, "application/json", strings.NewReader(data))
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				defer resp.Body.Close()
 				gomega.Expect(resp.Status).To(gomega.Equal("200 OK"))
 				_, err = io.ReadAll(resp.Body)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -274,9 +278,13 @@ func waitForPortAvailable(port string, timeout time.Duration) {
 		conn, err := net.DialTimeout("tcp", "127.0.0.1:"+port, 100*time.Millisecond)
 		if err != nil {
 			// Port is available (connection refused means no one is listening)
+			if conn != nil {
+				conn.Close()
+			}
 			return
 		}
 		conn.Close()
 		time.Sleep(500 * time.Millisecond)
 	}
+	gomega.Expect(fmt.Errorf("port %s is still in use after %v", port, timeout)).NotTo(gomega.HaveOccurred())
 }

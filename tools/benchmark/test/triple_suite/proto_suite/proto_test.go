@@ -96,6 +96,7 @@ var _ = Describe("triple protocol performance test", Ordered, func() {
 `
 				resp, err := http.Post(url, "application/json", strings.NewReader(data))
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				defer resp.Body.Close()
 				gomega.Expect(resp.Status).To(gomega.Equal("200 OK"))
 				reply, err := io.ReadAll(resp.Body)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
