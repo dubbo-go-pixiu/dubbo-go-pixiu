@@ -108,7 +108,15 @@ func TestEncodeWithoutDecodeReportsBoundedLatency(t *testing.T) {
 	chain.OnDecode(ctx)
 	chain.OnEncode(ctx)
 
-	entry := <-logData
+	var entry AccessLogData
+	timer := time.NewTimer(time.Second)
+	defer timer.Stop()
+	select {
+	case entry = <-logData:
+	case <-timer.C:
+		t.Fatal("timed out waiting for access-log entry")
+	}
+
 	matches := accessLogCostPattern.FindStringSubmatch(entry.AccessLogMsg)
 	if assert.Len(t, matches, 2) {
 		latency, parseErr := strconv.ParseInt(matches[1], 10, 64)
